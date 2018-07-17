@@ -1,0 +1,419 @@
+\documentclass[10pt]{article}
+\usepackage{graphicx,geometry,amssymb,amsmath,amsfonts}
+\usepackage{float}
+\restylefloat{table}
+\usepackage{lscape}
+\usepackage{verbatim,latexsym}
+\usepackage{Sweave}
+\usepackage{epstopdf}
+\usepackage{subfigure}
+\usepackage{amsthm,graphicx,wasysym}
+%\usepackage{titlesec}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{longtable}
+
+\usepackage{color}   % May be necessary if you want to color links and for color text
+\usepackage[dvipsnames]{xcolor}
+
+
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true, %set true if you want colored links
+    linktoc=all,     %set to all if you want both sections and subsections linked
+    linkcolor=blue,  %choose some color if you want links to stand out
+}
+
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0em}
+\renewcommand{\baselinestretch}{1.0}
+
+\geometry{left=1.25in, right=1.25in, top=1in, bottom=1in}
+
+\title{Considering different ways to average/sum Cr values across seasons.}
+\date{}       
+\author{}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\SweaveOpts{keep.source=TRUE, prefix.string=RGraphics}
+\newcommand{\multilineR}[1]{\begin{tabular}[b]{@{}r@{}}#1\end{tabular}}
+\newcommand{\multilineL}[1]{\begin{tabular}[b]{@{}l@{}}#1\end{tabular}}
+\newcommand{\multilineC}[1]{\begin{tabular}[b]{@{}c@{}}#1\end{tabular}}
+
+\thispagestyle{empty}
+
+\maketitle
+
+\tableofcontents
+
+<<label=runscript, eval=TRUE, echo=FALSE, results=hide>>=
+
+load("DataFiles/PERTdataMonarch.RData") # Load R data from the file
+
+library(xtable)
+library(data.table)
+library(knitr)
+opts_knit$set(self.contained=FALSE)
+
+node_color <- c("green", "red", "orange", "blue") # W, S, C, N
+trans_color <- c("purple", "magenta", "turquoise") # W->S, S->C, C->N
+@
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Perturbation Experiment - Perturbing Node Survival Rates}
+
+To investigate the utility of the metrics as an indicator of the change in carrying capacity $K$ we consider the following perturbations to the survival rate at each node:
+
+\[PERT = .9, .8, .7, .6, .5\]
+
+\newpage 
+
+
+<<label=runscript, eval=TRUE, echo=FALSE, results=hide>>=
+
+######################## DATA ##############################################
+# Find change in  carrying capacity for female only population breeding season:
+rm(DELTA_K)
+DELTA_K <- matrix(0,count)
+K <- matrix(0,count)
+BASEK <- sum(BASEN[seq(1,NUMNET*num_nodes,by=NUMNET),BASEtimestep])
+for (i in 1:count){
+  NEWK <- sum(PERT_N[[i]][seq(1,NUMNET*num_nodes,by=NUMNET),PERT_timestep[[i]]])
+  DELTA_K[i] <- NEWK - BASEK
+  K[i] <- NEWK
+}
+
+######################### END DATA #############################
+
+@
+
+
+
+\newpage
+\section{Comparing \texorpdfstring{$C^r$}{CR} results from different averaging/summing across seasons}
+
+<<label=monarch_barcr_averageCR, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+
+par(mfrow=c(2,2)) # Set the plotting area into a 3 by 2 array
+
+# Find MAX/MIN K values
+PLOTMAXK <- matrix(0,num_nodes,1)
+PLOTMINK <- matrix(0,num_nodes,1)
+ for(i in 1:num_nodes){
+   PLOTMAXK[i] <- max(K[seq(i,num_nodes*length(PERT),by=num_nodes)])
+   PLOTMINK[i] <- min(K[seq(i,num_nodes*length(PERT),by=num_nodes)])
+ }
+
+########### POPULATION WEIGHTED SEASONAL AVERAGE ####################
+PLOTBASECR <- BASECRs #CRs contains the population weighted CR value for each node (averaged across clases and seasons)
+
+plot(0, 0, 
+     type="l", 
+     lwd=0, 
+     xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+     ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+     main="Population weighted average CR",  
+     xlab="CR", 
+     ylab="K")
+symb <- 0
+
+DATAPLOT <- matrix(0,num_nodes,length(PERT))
+
+for(j in 1:num_nodes){
+  par(new = TRUE)
+  # Plot the range for each node
+  
+  DATAPLOT[j,] <- K[seq(j,num_nodes*length(PERT),by=num_nodes)]
+  plot(matrix(PLOTBASECR[j],1,length(PERT)),K[seq(j,num_nodes*length(PERT),by=num_nodes)], 
+       type="o", 
+       lwd=1, 
+       pch=symb, 
+       col=node_color[symb+1],
+       xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+       ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+       axes = FALSE,  
+       xlab="", 
+       ylab="")
+  symb <- symb +1
+}
+abline(h = BASEK, lty=2)
+rm(j)
+
+# UNWEIGHTED AVERAGE
+PLOTBASECR <- rowSums(BASECRt)/seasons
+  
+plot(0, 0, 
+     type="l", 
+     lwd=0, 
+     xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+     ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+     main="Unweighted Average CR",  
+     xlab="CR", 
+     ylab="K")
+symb <- 0
+
+DATAPLOT <- matrix(0,num_nodes,length(PERT))
+
+for(j in 1:num_nodes){
+  par(new = TRUE)
+  # Plot the range for each node
+  
+  DATAPLOT[j,] <- K[seq(j,num_nodes*length(PERT),by=num_nodes)]
+  plot(matrix(PLOTBASECR[j],1,length(PERT)),K[seq(j,num_nodes*length(PERT),by=num_nodes)], 
+       type="o", 
+       lwd=1, 
+       pch=symb, 
+       col=node_color[symb+1],
+       xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+       ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+       axes = FALSE,  
+       xlab="", 
+       ylab="")
+  symb <- symb +1
+}
+abline(h = BASEK, lty=2)
+rm(j) 
+
+
+# SEASONAL SUMS
+PLOTBASECR <- rowSums(BASECRt)
+  
+plot(0, 0, 
+     type="l", 
+     lwd=0, 
+     xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+     ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+     main="Summed CR",  
+     xlab="CR", 
+     ylab="K")
+symb <- 0
+
+DATAPLOT <- matrix(0,num_nodes,length(PERT))
+
+for(j in 1:num_nodes){
+  par(new = TRUE)
+  # Plot the range for each node
+  
+  DATAPLOT[j,] <- K[seq(j,num_nodes*length(PERT),by=num_nodes)]
+  plot(matrix(PLOTBASECR[j],1,length(PERT)),K[seq(j,num_nodes*length(PERT),by=num_nodes)], 
+       type="o", 
+       lwd=1, 
+       pch=symb, 
+       col=node_color[symb+1],
+       xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+       ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+       axes = FALSE,  
+       xlab="", 
+       ylab="")
+  symb <- symb +1
+}
+abline(h = BASEK, lty=2)
+rm(j) 
+  
+@
+
+\vspace{-.5cm}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=\textwidth, height=.8\textwidth]{RGraphics-monarch_barcr_averageCR}
+\caption{Perturbation results: Range of K values after perturbations to each node, X-axis represents {\bf{baseline population weighted $C^r$ values}} for each node}\label{fig:monarch_barcr_averageCR}
+\end{center}
+\end{figure}
+
+\vspace{-.5cm}
+\begin{tabular}{|c|c|c|}
+\hline
+{\color{green}Winter} & $\Box$ & non-breeding \\
+\hline
+{\color{red}South} & $\bigcirc$ & breeding \\
+\hline
+{\color{orange}Central} & $\triangle$ & breeding \\
+\hline
+{\color{blue}North} & $\diamond$ & breeding \\
+\hline
+\end{tabular}
+
+
+
+
+
+
+
+\newpage
+%########################################################%
+\section{Population Distribution \texorpdfstring{$W^r$}{WR} - split seasons}
+
+$W^r$ is calculated as the percent of the total population residing at a node. This calculation results in $W^r$ values for each node during each seaons. To get a consistent value for the network, we average (not weighted) across the seasons. The final numbers should sum to one.
+
+<<label=monarch_barcr_WR, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+
+par(mfrow=c(3,2)) # Set the plotting area into a 2 by 1 array
+
+# Find MAX/MIN K values
+PLOTMAXK <- matrix(0,num_nodes,1)
+PLOTMINK <- matrix(0,num_nodes,1)
+
+ for(i in 1:num_nodes){
+   PLOTMAXK[i] <- max(K[seq(i,num_nodes*length(PERT),by=num_nodes)])
+   PLOTMINK[i] <- min(K[seq(i,num_nodes*length(PERT),by=num_nodes)])
+ }
+
+for (i in 1:seasons){
+# Calculate a direct average across seasons
+PLOTWR <- BASEWRt[,i] 
+
+plot(0, 0, 
+     type="l", 
+     lwd=0, 
+     xlim = c(min(PLOTWR),max(PLOTWR)), 
+     ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+     main="Baseline $W^r$ for each season",  
+     xlab="Node Baseline $W^r$", 
+     ylab="Network K")
+symb <- 0
+
+DATAPLOT <- matrix(0,num_nodes,length(PERT))
+
+for(j in 1:num_nodes){
+  par(new = TRUE)
+  # Plot the range for each node
+  
+  DATAPLOT[j,] <- K[seq(j,num_nodes*length(PERT),by=num_nodes)]
+  plot(matrix(PLOTWR[j],1,length(PERT)),K[seq(j,num_nodes*length(PERT),by=num_nodes)], 
+       type="o", 
+       lwd=1, 
+       pch=symb, 
+       col=node_color[symb+1],
+       xlim = c(min(PLOTWR),max(PLOTWR)), 
+       ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+       axes = FALSE,  
+       xlab="", 
+       ylab="")
+  symb <- symb +1
+}
+# Add text to the graph locator(1)
+# text(0.28,3286895,"NU") 
+# text(0.67, 3734797, "CA")
+# text(0.42, 3831843, "AK")
+# text(0.328, 2786737, "GC")
+# text(0.3, 1555004, "PR")
+# text(0.5, 2395900, "Baseline")
+abline(h = BASEK, lty=2)
+rm(j)
+
+}
+@
+
+\vspace{-.5cm}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.8\textwidth, height=.8\textwidth]{RGraphics-monarch_barcr_WR}
+\caption{Perturbation results: Range of K values after perturbations to each node, X-axis represents baseline average $W^r$ value for each node}\label{fig:monarch_barcr_WR}
+\end{center}
+\end{figure}
+
+\vspace{-.5cm}
+\begin{tabular}{|c|c|c|}
+\hline
+{\color{green}Winter} & $\Box$ & non-breeding \\
+\hline
+{\color{red}South} & $\bigcirc$ & breeding \\
+\hline
+{\color{orange}Central} & $\triangle$ & breeding \\
+\hline
+{\color{blue}North} & $\diamond$ & breeding \\
+\hline
+\end{tabular}
+
+%########################################################%
+\section{CR - split seasons}
+
+How does CR look if we split apart the seasons?
+
+<<label=monarch_barcr_CRseasons, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+
+par(mfrow=c(3,2)) # Set the plotting area into a 2 by 1 array
+
+# Find MAX/MIN K values
+PLOTMAXK <- matrix(0,num_nodes,1)
+PLOTMINK <- matrix(0,num_nodes,1)
+ for(i in 1:num_nodes){
+   PLOTMAXK[i] <- max(K[seq(i,num_nodes*length(PERT),by=num_nodes)])
+   PLOTMINK[i] <- min(K[seq(i,num_nodes*length(PERT),by=num_nodes)])
+ }
+
+for (i in 1:seasons){
+# Calculate a direct average across seasons
+PLOTWR <- BASECRt[,i] 
+
+plot(0, 0, 
+     type="l", 
+     lwd=0, 
+     xlim = c(min(PLOTWR),max(PLOTWR)), 
+     ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+     main="Baseline CR for each season",  
+     xlab="Node Baseline CR", 
+     ylab="Network K")
+symb <- 0
+
+DATAPLOT <- matrix(0,num_nodes,length(PERT))
+
+for(j in 1:num_nodes){
+  par(new = TRUE)
+  # Plot the range for each node
+  
+  DATAPLOT[j,] <- K[seq(j,num_nodes*length(PERT),by=num_nodes)]
+  plot(matrix(PLOTWR[j],1,length(PERT)),K[seq(j,num_nodes*length(PERT),by=num_nodes)], 
+       type="o", 
+       lwd=1, 
+       pch=symb, 
+       col=node_color[symb+1],
+       xlim = c(min(PLOTWR),max(PLOTWR)), 
+       ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+       axes = FALSE,  
+       xlab="", 
+       ylab="")
+  symb <- symb +1
+}
+# Add text to the graph locator(1)
+# text(0.28,3286895,"NU") 
+# text(0.67, 3734797, "CA")
+# text(0.42, 3831843, "AK")
+# text(0.328, 2786737, "GC")
+# text(0.3, 1555004, "PR")
+# text(0.5, 2395900, "Baseline")
+abline(h = BASEK, lty=2)
+rm(j)
+
+}
+@
+
+\vspace{-.5cm}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.8\textwidth, height=.8\textwidth]{RGraphics-monarch_barcr_CRseasons}
+\caption{Perturbation results: Range of K values after perturbations to each node, X-axis represents baseline average CR value for each node, here we have split up the seasons - no average}\label{fig:monarch_barcr_WR}
+\end{center}
+\end{figure}
+
+\vspace{-.5cm}
+\begin{tabular}{|c|c|c|}
+\hline
+{\color{green}Winter} & $\Box$ & non-breeding \\
+\hline
+{\color{red}South} & $\bigcirc$ & breeding \\
+\hline
+{\color{orange}Central} & $\triangle$ & breeding \\
+\hline
+{\color{blue}North} & $\diamond$ & breeding \\
+\hline
+\end{tabular}
+
+
+\end{document}
