@@ -74,7 +74,7 @@ this.dir <- dirname(parent.frame(2)$ofile)
 setwd(this.dir)
 
 # Set location of source code
-netcode <- c("../NetworkCode1.2_NewEqn/")
+netcode <- c("../NetworkCode2.0/")
 
 # Clear the workspace reserving needed network input variables
 base_variables <- c("seasons", "num_nodes", "NETNAME", "tmax", "SIMNAME", "ERR", "OUTPUTS", "SILENT","netcode","base_variables", "SAVE_VAR", "RUN_PERT", "delta", "SN_length", "PERT","SAVENAME","RNW","PERTNAME","PATH_PERTURB","PERTSAVE")
