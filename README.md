@@ -1,11 +1,15 @@
 # MigrationModeling
-Writen by Joanna Bieri and Christine Sample
+Writen by Joanna Bieri, Christine Sample, Joseph Macias, and Summer Stafford
 
 This code is based on the general network framework as described in the paper:
 
 A general modeling framework for describing spatio-temporal population dynamics
 
 Christine Sample* , John Fryxell, Joanna Bieri, Paula Federico, Julia Earl, Ruscena Wiederholt, Tyler Flockhart, Sam Nicol, Jay E. Diffendorfer, Brady J. Mattsson, Wayne E. Thogmartin, Richard A. Erickson, and D. Ryan Norris.
+
+Version 2.0 of the code as of 7/17/18
+
+Updates include structural changes to condense the number of files necessary to run. This update allows the user to change the values in the first lines of the simulation.r code, and then run the network setup, baseline simulation, and perturbations all from there. Additionally, it compiles a PDF with the perturbation data. 
 
 Version 1.2 of the code as of 5/7/18
 
