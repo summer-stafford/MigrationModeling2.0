@@ -1,0 +1,325 @@
+\documentclass[10pt]{article}
+\usepackage{graphicx,geometry,amssymb,amsmath,amsfonts}
+\usepackage{float}
+\restylefloat{table}
+\usepackage{lscape}
+\usepackage{verbatim,latexsym}
+\usepackage{Sweave}
+\usepackage{epstopdf}
+\usepackage{subfigure}
+\usepackage{amsthm,graphicx,wasysym}
+%\usepackage{titlesec}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{longtable}
+
+\usepackage{color}   % May be necessary if you want to color links and for color text
+\usepackage[dvipsnames]{xcolor}
+
+
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true, %set true if you want colored links
+    linktoc=all,     %set to all if you want both sections and subsections linked
+    linkcolor=blue,  %choose some color if you want links to stand out
+}
+
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0em}
+\renewcommand{\baselinestretch}{1.0}
+
+\geometry{left=1.25in, right=1.25in, top=1in, bottom=1in}
+
+\title{Comparing $C^r$ Values with Network Perturbation Results - Focal Species: Plants}
+\date{}       
+\author{Joanna Bieri, Christine Sample, Brady Mattsson, Darius Semmens, and ...}
+
+\begin{document}
+\input{PlantAnalysisReviewJune2018-copy-concordance}
+
+\newcommand{\multilineR}[1]{\begin{tabular}[b]{@{}r@{}}#1\end{tabular}}
+\newcommand{\multilineL}[1]{\begin{tabular}[b]{@{}l@{}}#1\end{tabular}}
+\newcommand{\multilineC}[1]{\begin{tabular}[b]{@{}c@{}}#1\end{tabular}}
+
+\thispagestyle{empty}
+
+\maketitle
+
+\tableofcontents
+
+
+\section{Plant Notes and Generalized \texorpdfstring{$C^r$}{CR} }
+We model a population of Buttercup plant building our model based on the formulation in  {\it{A general modeling framework for describing spatially structured population dynamics}} by Sample et. al.
+
+We track the population at eight breeding nodes. The population is modeled through three times steps each year:
+\begin{itemize}
+\item Summer, seeds and plants at all nodes.
+\item Autumn/Winter, seeds and plants at all nodes.
+\item Spring, seeds and plants at all nodes. 
+\end{itemize}
+
+We use a generalized network model formulation were we define one time step as
+
+\begin{equation}
+\vec{\mathbf{N}}_{t+1}={\mathbf{A}_t}\vec{\mathbf{N}}_t
+\end{equation}
+
+Where $\vec{\mathbf{N}}_{t}$ contains the population at each of the $n$ nodes and $c$ classes at time $t$. The matrix $\mathbf{A}_t$ contains all of the demographic node update and migration data for time $t$. (Christine and Joanna have a draft of a paper with this construction).
+
+
+Within the plant code we calculate the $C^r$ values for both the origin and the intermediate nodes during each season. We use a generalized one equation definition of $C^r$ in matrix form. %{\it{This generalized version is from Joanna and Christine and has not yet been published, currently in draft form. It allows for complete generality in the number of nodes, classes, and seasons.}}
+
+\begin{equation}
+\vec{\mathbf{C}}_t=\left(\prod_{\tau=t}^{t+s-1}\mathbf{A}_\tau^T\right)\vec{\mathbf{1}}_{nc}
+\end{equation}
+
+where $s$ is the total number of seasons in one anual cycle, for the plants $s=3$ and $\vec{\mathbf{C}}_t$ is a column vector that contains the $C^r$ values at each node for each class for focal season, or time, $t$. 
+
+We note that because the code is run to equillibrium, the overall growth rate of the nework is equal to one. We can calculate the growth rate using:
+
+\begin{equation}
+\lambda_t= \frac{\vec{\mathbf{N}}_t^T}{N_t^{tot}}\vec{\mathbf{C}}_t
+\label{lambda}
+\end{equation}\\
+where $N_t^{tot}$ is the sum of the equilibrium population values across all nodes and all classes in the network and is represented by the following summation
+\begin{equation}
+N_t^{tot}=\sum_{r=1}^n\sum_{x=1}^{c}N^x_{r,t}
+\end{equation}
+
+\section{Density Dependence in the Plant Population}
+%
+The nodal update function $f$ is density dependent. $f$ is defined by:
+
+\begin{equation}\label{f_update}
+f_{i,t}^p = \underbrace{s_{i,t}^p\cdot N_{i,t}^p}_\text{plants that survive}+\underbrace{\Psi_{i,t}\cdot T_{i,t}\cdot s_{i,t}^s\cdot N_{i,t}^s}_\text{seeds that successfully transition to plants}
+\end{equation}
+%
+$s_{i,t}^p$, $T_{i,t}$, and $s_{i,t}^s$ are all constants. $\Psi_{i,t}$ is the density-dependent postgermination survival rate. $\Psi_{i,t}$ is given by:
+%
+\begin{equation}\label{psi_equation}
+\Psi_{i,t} = \psi_{i,t} \cdot e^{-(N_{i,t}^p+T_{i,t}\cdot s_{i,t}^s\cdot N_{i,t}^s)/K_i}
+\end{equation}
+%
+$K_i$ is the carying capacity at node $i$ and $\psi_{i,t}$ is the maximum germination rate, which is constant, but varies by season. 
+%
+\section{Baseline Simulation}
+% 
+The baseline simulation gives us identical results to {\it{A general modeling framework for describing spatially
+structured population dynamics}} by Sample et. al. We find that the long term carrying capacity for each node during the nonbreeding season, including all classes, is
+
+\begin{Schunk}
+\begin{Soutput}
+season 1 : k= 43.50627 42.92571 43.32792 43.32185 43.3219 43.32762 42.92347 43.50624
+season 2 : k= 470.9006 513.6243 493.1009 493.3224 493.3228 493.0962 513.5998 470.8987
+season 3 : k= 145.3853 170.1022 158.4498 158.1963 158.1963 158.4482 170.0959 145.3845
+\end{Soutput}
+\end{Schunk}
+
+
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.7\textwidth, height=.6\textwidth]{RGraphics-plantbaseline}
+\caption{Baseline results: population over time at nonbreeding node.}\label{fig:plantbaseline}
+\end{center}
+\end{figure}
+
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Perturbation Experiment - Perturbing Node Survival Rates}
+
+To investigate the utility of the metrics as an indicator of the change in carrying capacity $K$ we consider the following perturbations to the survival rate at each node:
+
+\[PERT = .9, .8, .7, .6, .5\]
+
+Some notes about the simulations:
+\begin{itemize}
+\item All simulations are run to equillibrium with an error tollerance of within 1 plant, meaning the network growth rate $\lambda=1$.
+\item We only cary out negative perturbations because positive perturbations will cause survival rates to exceed 1.
+\end{itemize}
+%  
+
+
+\newpage 
+
+
+
+\section{Plant Plots - June 2018 - to Match Pintail Outputs}
+
+We will consider metrics for the x-axis of our graph:
+\begin{itemize}
+\item Baseline $C^r$ vs $K$ perturbations - this is the population weighted $C^r$ value averaged across classes and seasons Figure \ref{fig:plant_barcr_averageCR}
+\item Baseline $W^r$ vs $K$ perturbations - the population proportions averaged across seasons Figure \ref{fig:plant_barcr_WR}
+\item Baseline $D_s$ vs $K$ perturbations - the proportional dependence as defined in Bagstad et al, generalizing to account for juveniles: Figure \ref{fig:plant_barcr_DS}
+\item NEW - Baseline Criticality $KR_i$ vs $K$ perturbations - defined as the network growth rate in the absence of node $i$ using a population weighted average across seasons: Figure \ref{fig:plant_barcr_KR}. Note that because we are at equilibrium the baseline network growth rate is $\lambda = 1$.
+\end{itemize}
+
+\newpage
+\subsection{Population weighted average \texorpdfstring{$C^r$}{CR}}
+
+In order to be consistent across case studies we decide to calculate $C^r$ using a population weighted average. The general matrix form of $C^r$ results in a $C^r$ values for each node, class, and season. To combine these into a single full year network wide $C^r$ value we first do a population weighted average by class within each node and then do a population weighted average across seasons. This results in a single $C^r$ values for each node.
+
+The plant model has three seasons (Summer, Autumn/Winter, Spring) and two classes (seeds and plants).
+
+
+\vspace{-.5cm}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.8\textwidth, height=.8\textwidth]{RGraphics-plant_barcr_averageCR}
+\caption{Perturbation results: Range of K values after perturbations to each node, X-axis represents {\bf{baseline population weighted $C^r$ values}} for each node}\label{fig:plant_barcr_averageCR}
+\end{center}
+\end{figure}
+
+\vspace{-.5cm}
+\begin{tabular}{|c|c|c|}
+\hline
+{\color{red} Node 1} & $\Box$ & year-round \\
+\hline
+{\color{orange} Node 2} & $\triangle$ & year-round \\
+\hline
+{\color{yellow} Node 3} & $\times$ &  year-round \\
+\hline
+{\color{green} Node 4} & $\bigtriangledown$ & year-round \\
+\hline
+{\color{blue} Node 5} & $\star$ & year-round \\
+\hline
+{\color{purple} Node 6} & $\oplus$ & year-round \\
+\hline
+{\color{magenta} Node 7} & $\Box$ & year-round \\
+\hline
+{\color{cyan} Node 8} & $\bigtriangledown$ & year-round \\
+\hline
+\end{tabular}
+
+
+
+
+
+
+
+
+\newpage
+\subsection{Population Distribution \texorpdfstring{$W^r$}{WR}}
+
+$W^r$ is calculated as the percent of the total population residing at a node. This calculation results in $W^r$ values for each node during each seaons. To get a consistent value for the network, we average (not weighted) across the seasons. The final numbers should sum to one.
+
+
+\vspace{-.5cm}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.8\textwidth, height=.8\textwidth]{RGraphics-plant_barcr_WR}
+\caption{Perturbation results: Range of K values after perturbations to each node, X-axis represents baseline average $W^r$ value for each node}\label{fig:plant_barcr_WR}
+\end{center}
+\end{figure}
+
+\vspace{-.5cm}
+\begin{tabular}{|c|c|c|}
+\hline
+{\color{red} Node 1} & $\Box$ & year-round \\
+\hline
+{\color{orange} Node 2} & $\triangle$ & year-round \\
+\hline
+{\color{yellow} Node 3} & $\times$ &  year-round \\
+\hline
+{\color{green} Node 4} & $\bigtriangledown$ & year-round \\
+\hline
+{\color{blue} Node 5} & $\star$ & year-round \\
+\hline
+{\color{purple} Node 6} & $\oplus$ & year-round \\
+\hline
+{\color{magenta} Node 7} & $\Box$ & year-round \\
+\hline
+{\color{cyan} Node 8} & $\bigtriangledown$ & year-round \\
+\hline
+\end{tabular}
+
+
+
+
+\newpage
+\subsection{Proportional Dependence \texorpdfstring{$D_s$}{DS}}
+
+$D_s$ is calculated following Bagstad et al. We first find the population weighted $C^r$ values for each of the seasons and then average across the anual cycle.
+
+
+\vspace{-.5cm}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.8\textwidth, height=.8\textwidth]{RGraphics-plant_barcr_DS}
+\caption{Perturbation results: Range of K values after perturbations to each node, X-axis represents baseline $D_s$ value for each node}\label{fig:plant_barcr_DS}
+\end{center}
+\end{figure}
+
+\vspace{-.5cm}
+\begin{tabular}{|c|c|c|}
+\hline
+{\color{red} Node 1} & $\Box$ & year-round \\
+\hline
+{\color{orange} Node 2} & $\triangle$ & year-round \\
+\hline
+{\color{yellow} Node 3} & $\times$ &  year-round \\
+\hline
+{\color{green} Node 4} & $\bigtriangledown$ & year-round \\
+\hline
+{\color{blue} Node 5} & $\star$ & year-round \\
+\hline
+{\color{purple} Node 6} & $\oplus$ & year-round \\
+\hline
+{\color{magenta} Node 7} & $\Box$ & year-round \\
+\hline
+{\color{cyan} Node 8} & $\bigtriangledown$ & year-round \\
+\hline
+\end{tabular}
+
+
+
+
+
+\newpage
+\subsection{Criticality - NEW \texorpdfstring{$K^r$}{KR}}
+
+Criticality $K^r$ is a new metric concieved of by Christine and her colleagues. The basic idea is that from $C^r$ we can calculate the network growth rate $\lambda$. In the case of a population in equilibrium, like our simulations, $\lambda = 1$. Then one could also calculate a theoretical $C^r$ value as if on of the nodes was removed. From this theoretical $C^r$ value we could calulcate a new network growth rate $\gamma$. We define criticality as 
+\[K^r = \lambda - \gamma \]
+In other words $K^r$ represents the amount of the network growth rate that flows through the focal node $r$. In our equilibrium case is $K^r=1$ then all of the network growth rate must flow through $r$ and removal of $r$ reduces the new growth rate $\gamma$ to zero. Alternatively, if $K^r=0$ then none of the original network growth rate flows through $r$ and removal of $r$ does not change the growth rate, $\lambda=\gamma=1$.
+
+The $K^r$ calculation results in criticality vales for each node during each season. To get a single yearly value we use a population weighted average.
+
+
+
+\vspace{-.5cm}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.8\textwidth, height=.8\textwidth]{RGraphics-plant_barcr_KR}
+\caption{Perturbation results: Range of K values after perturbations to each node, X-axis represents baseline Criticality value for each node}\label{fig:plant_barcr_KR}
+\end{center}
+\end{figure}
+
+\vspace{-.5cm}
+\begin{tabular}{|c|c|c|}
+\hline
+{\color{red} Node 1} & $\Box$ & year-round \\
+\hline
+{\color{orange} Node 2} & $\triangle$ & year-round \\
+\hline
+{\color{yellow} Node 3} & $\times$ &  year-round \\
+\hline
+{\color{green} Node 4} & $\bigtriangledown$ & year-round \\
+\hline
+{\color{blue} Node 5} & $\star$ & year-round \\
+\hline
+{\color{purple} Node 6} & $\oplus$ & year-round \\
+\hline
+{\color{magenta} Node 7} & $\Box$ & year-round \\
+\hline
+{\color{cyan} Node 8} & $\bigtriangledown$ & year-round \\
+\hline
+\end{tabular}
+
+
+\end{document}
