@@ -31,6 +31,8 @@ PATH_PERTURB <- "PerturbationResults_NoHarvest" # Specifies which folder contain
 
 PERTSAVE <- "PERTdataNoHarvest" # Specifies the name of the .RData file where the perturbation data will be saved
 
+RUN_RNW <- TRUE # Specifies if the code will produce a PDF with results 
+#NOTE: user must edit .rnw file in order have up to date species blurb etc
 RNW <- "PintailAnalysisReview_6_6_18_NoHarvest" # Specifies .rnw file to use when producing PDF
 
 ERR <- 1 # Error tolerance for convergence. 
@@ -75,9 +77,9 @@ this.dir <- dirname(parent.frame(2)$ofile)
 setwd(this.dir)
 
 # Set location of source code
-netcode <- c("../NetworkCode1.2_NewEqn/")
+netcode <- c("../NetworkCode2.0/")
 # Clear the workspace reserving needed network input variables
-base_variables <- c("seasons", "num_nodes", "NETNAME", "tmax", "SIMNAME", "ERR", "OUTPUTS", "SILENT","netcode","base_variables", "SAVE_VAR", "RUN_PERT", "delta", "SN_length", "PERT","SAVENAME","RNW","PERTNAME","PATH_PERTURB","PERTSAVE")
+base_variables <- c("seasons", "num_nodes", "NETNAME", "tmax", "SIMNAME", "ERR", "OUTPUTS", "SILENT","netcode","base_variables", "SAVE_VAR", "RUN_PERT", "delta", "SN_length", "PERT","SAVENAME","RNW","PERTNAME","PATH_PERTURB","PERTSAVE","RUN_RNW")
 if(!exists("pert_variables")){pert_variables <- c("pert_variables")}
 pert_variables <- c(pert_variables, ls(),"count", "p") 
 base_variables <- c(base_variables, "pert_variables") 
@@ -119,5 +121,5 @@ save.image(file=paste("../", SAVENAME,"/",PATH_PERTURB,"/DataFiles/", PERTSAVE, 
 ##########################
 ### COMPILE PDF FILE   ###
 ##########################
-
-Sweave(paste("../",SAVENAME,"/",PATH_PERTURB,"/",RNW,".rnw",sep=""), encoding = "UTF-8")
+if(RUN_RNW==T){
+Sweave(paste("../",SAVENAME,"/",PATH_PERTURB,"/",RNW,".rnw",sep=""), encoding = "UTF-8")}
