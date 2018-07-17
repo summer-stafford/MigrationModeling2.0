@@ -1,0 +1,232 @@
+\documentclass[10pt]{article}
+\usepackage{graphicx,geometry,amssymb,amsmath,amsfonts}
+\usepackage{float}
+\restylefloat{table}
+\usepackage{lscape}
+\usepackage{verbatim,latexsym}
+\usepackage{Sweave}
+\usepackage{epstopdf}
+\usepackage{subfigure}
+\usepackage{amsthm,graphicx,wasysym}
+%\usepackage{titlesec}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{longtable}
+
+\usepackage{color}   % May be necessary if you want to color links and for color text
+\usepackage[dvipsnames]{xcolor}
+
+
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true, %set true if you want colored links
+    linktoc=all,     %set to all if you want both sections and subsections linked
+    linkcolor=blue,  %choose some color if you want links to stand out
+}
+
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{0em}
+\renewcommand{\baselinestretch}{1.0}
+
+\geometry{left=1.25in, right=1.25in, top=1in, bottom=1in}
+
+\title{Comparing $C^r$ Values with Network Perturbation Results}
+\date{}       
+\author{Joanna Bieri, Christine Sample, Brady Mattsson, and Darius Semmens}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\SweaveOpts{keep.source=TRUE, prefix.string=RGraphics}
+\newcommand{\multilineR}[1]{\begin{tabular}[b]{@{}r@{}}#1\end{tabular}}
+\newcommand{\multilineL}[1]{\begin{tabular}[b]{@{}l@{}}#1\end{tabular}}
+\newcommand{\multilineC}[1]{\begin{tabular}[b]{@{}c@{}}#1\end{tabular}}
+
+\thispagestyle{empty}
+
+\maketitle
+
+\tableofcontents
+
+\section{Info:}
+This document contains a series of additional graphs and data to help us try to undetstand results from the pintail perturbation experiment. Figure 4 from our original document had some surprising results and we are trying to understand how density dependence affects the $C^r$ and carrying capacity relationship.
+
+
+
+<<label=runscript, eval=TRUE, echo=FALSE, results=hide>>=
+
+load("PERTdataDD.RData") # Load R data from the file
+
+library(xtable)
+library(data.table)
+library(knitr)
+opts_knit$set(self.contained=FALSE)
+
+node_color <- c("brown", "red", "orange", "blue", "cyan") # AK, PR, NU, CA, GC
+trans_color <- c("purple", "magenta", "turquoise") # PR->AK, PR->PR, PR->NU
+@
+
+
+\section{Perturbation Experiment - Perturbing Node Survival Rates}
+
+To reduce the length of computation run time I reduced the number of perturbations to focus on:
+
+\[PERT = 1.2,1.1,1.0,.9,.8\]
+
+Some notes about the simulations:
+\begin{itemize}
+\item All simulations are run to equillibrium with an error tollerance of within 1 animal, meaning the network growth rate $\lambda=1$.
+\item We are considering only the Female population in our analysis, so that while the full network is at equillibrium, the Female only $C^r$ values will be greater than one.
+\item The simulations are run using three seasons (Breading, Winter, and Stopover) to account for densitiy dependent migration in the spring, however $C^r$ values will be calculated using only the Breeding (season 1) and Winter (season 2) data.
+\end{itemize}
+%  
+
+% % PLOTS OF PERTURBATION RESULTS:
+
+\newpage
+
+\subsection{Review of Figure 4 from original data:}
+
+
+<<label=runscript, eval=TRUE, echo=FALSE, results=hide>>=
+
+######################## DATA ##############################################
+# Find change in  carrying capacity for female only population breeding season:
+rm(DELTA_K)
+DELTA_K <- matrix(0,count)
+K <- matrix(0,count)
+BASEK <- sum(BASEN[seq(1,NUMNET*num_nodes,by=NUMNET),BASEtimestep])
+for (i in 1:count){
+  NEWK <- sum(PERT_N[[i]][seq(1,NUMNET*num_nodes,by=NUMNET),PERT_timestep[[i]]])
+  DELTA_K[i] <- NEWK - BASEK
+  K[i] <- NEWK
+}
+
+# Female CR values for seasons 1,2 corresponding to Breeding and Witering seasons. 
+PLOTCR <- matrix(0,nrow = count,ncol = num_nodes)
+PLOTBASECR <- rowSums(BASECR[seq(1,NUMNET*num_nodes,by=NUMNET),1:seasons-1])
+for (i in 1:count){
+  NEWCR <- rowSums(PERT_CR[[i]][seq(1,NUMNET*num_nodes,by=NUMNET),1:seasons-1])
+  PLOTCR[i,] <- NEWCR
+}
+
+# Change in Female CR values
+PLOTDELTACR <- matrix(0,nrow = count,ncol = num_nodes)
+for (i in 1:count){
+  PLOTDELTACR[i,] <- PLOTCR[i,]-PLOTBASECR
+}
+######################### END DATA #############################
+
+@
+
+
+Figure \ref{fig:pintail_barcr} plots how the perturbations to a nodes survival rate effects the range of network carrying capacities (adult female only) for each node. Here we plot the each node in order of it's $C^r$ value along with maximum and minumim carrying capacity values. Data for this plot is on the next page. Here the top mark represents a perturbation of $1.2$ and the bottom mark a perturbation of $0.8$. The blue line represents the baseline carrying capacity.
+
+<<label=pintail_barcr, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+
+# Find MAX/MIN K values
+PLOTMAXK <- matrix(0,num_nodes,1)
+PLOTMINK <- matrix(0,num_nodes,1)
+
+ for(i in 1:num_nodes){
+   PLOTMAXK[i] <- max(K[seq(i,num_nodes*length(PERT),by=num_nodes)])
+   PLOTMINK[i] <- min(K[seq(i,num_nodes*length(PERT),by=num_nodes)])
+ }
+
+plot(0, 0, 
+     type="l", 
+     lwd=0, 
+     xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+     ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+     main="Range of K values for each node.",  
+     xlab="Node Baseline $C^r$", 
+     ylab="Network K")
+symb <- 0
+
+DATAPLOT <- matrix(0,num_nodes,length(PERT))
+
+for(j in 1:num_nodes){
+  par(new = TRUE)
+  # Plot the range for each node
+  
+  DATAPLOT[j,] <- K[seq(j,num_nodes*length(PERT),by=num_nodes)]
+  plot(matrix(PLOTBASECR[j],1,length(PERT)),K[seq(j,num_nodes*length(PERT),by=num_nodes)], 
+       type="o", 
+       lwd=1, 
+       pch=symb, 
+       col=node_color[symb+1],
+       xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+       ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+       axes = FALSE,  
+       xlab="", 
+       ylab="")
+  symb <- symb +1
+}
+
+# Add text to the graph
+text(1.011,3247381,"NU") 
+text(1.339, 3688881, "CA")
+text(1.373, 1247608, "AK")
+text(1.427, 2739354, "GC")
+text(1.694, 3211093, "PR")
+text(1.08, 2395900, "Baseline")
+abline(h = BASEK, lty=2)
+rm(j)
+@
+
+\vspace{-.5cm}
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.8\textwidth, height=.8\textwidth]{RGraphics-pintail_barcr}
+\caption{Perturbation results: Range of K values after perturbations to each node, X-axis represents baseline $C^r$ value for each node}\label{fig:pintail_barcr}
+\end{center}
+\end{figure}
+
+\vspace{-.5cm}
+\begin{tabular}{|c|c|c|}
+\hline
+{\color{Sepia}AK} & $\Box$ & breeding \\
+\hline
+{\color{red}PR} & $\bigcirc$ & breeding \\
+\hline
+{\color{orange}NU} & $\triangle$ & breeding \\
+\hline
+{\color{blue}CA} & $+$ & winter \\
+\hline
+{\color{cyan}GC} & $\times$ & winter \\
+\hline
+\end{tabular}
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\SweaveOpts{concordance=TRUE}
+
+\newpage
+\section{Perturbations to AK}
+\SweaveInput{NODE1_DD_analysis.Rnw}
+
+\newpage
+\section{Perturbations to PR}
+\SweaveInput{NODE2_DD_analysis.Rnw}
+
+\newpage
+\section{Perturbations to NU}
+\SweaveInput{NODE3_DD_analysis.Rnw}
+
+\newpage
+\section{Perturbations to CA}
+\SweaveInput{NODE4_DD_analysis.Rnw}
+
+\newpage
+\section{Perturbations to GC}
+\SweaveInput{NODE5_DD_analysis.Rnw}
+
+
+\end{document}
+
+
+
+

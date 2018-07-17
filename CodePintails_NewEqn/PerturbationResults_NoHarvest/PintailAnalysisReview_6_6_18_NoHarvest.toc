@@ -1,0 +1,9 @@
+\select@language {english}
+\contentsline {section}{\numberline {1}Pintail Notes and Generalized $C^r$ }{1}{section.1}
+\contentsline {section}{\numberline {2}Baseline Simulation}{2}{section.2}
+\contentsline {section}{\numberline {3}Perturbation Experiment - Perturbing Node Survival Rates}{3}{section.3}
+\contentsline {section}{\numberline {4}Perturbation Experiment - Perturbing Node Survival Rates}{4}{section.4}
+\contentsline {subsection}{\numberline {4.1}Population weighted average $C^r$}{5}{subsection.4.1}
+\contentsline {subsection}{\numberline {4.2}Population Distribution $W^r$}{6}{subsection.4.2}
+\contentsline {subsection}{\numberline {4.3}Proportional Dependence $D_s$}{7}{subsection.4.3}
+\contentsline {subsection}{\numberline {4.4}Criticality - NEW $K^r$}{8}{subsection.4.4}

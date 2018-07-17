@@ -1,0 +1,1072 @@
+\documentclass[10pt]{article}
+\usepackage{graphicx,geometry,amssymb,amsmath,amsfonts}
+\usepackage{float}
+\restylefloat{table}
+\usepackage{lscape}
+\usepackage{verbatim,latexsym}
+\usepackage{Sweave}
+\usepackage{epstopdf}
+\usepackage{subfigure}
+\usepackage{amsthm,graphicx,wasysym}
+\usepackage{titlesec}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{longtable}
+
+\usepackage{color}   %May be necessary if you want to color links
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true, %set true if you want colored links
+    linktoc=all,     %set to all if you want both sections and subsections linked
+    linkcolor=blue,  %choose some color if you want links to stand out
+}
+
+
+\setlength{\parindent}{0em}
+\setlength{\parskip}{2em}
+\renewcommand{\baselinestretch}{1.0}
+
+\geometry{left=1.25in, right=1.25in, top=1in, bottom=1in}
+
+\title{Comparing $C^r$ Values with Network Perturbation Results}
+\date{}       
+\author{Joanna Bieri, Christine Sample, Brady Mattsson, and Darius Semmens}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\SweaveOpts{keep.source=TRUE, prefix.string=RGraphics}
+\newcommand{\multilineR}[1]{\begin{tabular}[b]{@{}r@{}}#1\end{tabular}}
+\newcommand{\multilineL}[1]{\begin{tabular}[b]{@{}l@{}}#1\end{tabular}}
+\newcommand{\multilineC}[1]{\begin{tabular}[b]{@{}c@{}}#1\end{tabular}}
+
+\thispagestyle{empty}
+
+\maketitle
+
+\tableofcontents
+
+\section{Pintail Notes}
+We model a population of northern pintail waterfowl building our model based entirely on the paper {\it{A modeling framework for integrated harvest and habitat management of North American waterfowl: Case-study of northern pintail metapopulation dynamics}} by Mattsson et. al.
+
+We track the population at three breeding nodes: $AK$, $PR$, and $NU$ and two wintering nodes: $CA$ and $GC$. The population is modeled through three times steps each season:
+\begin{itemize}
+\item Breeding and Fall Migration: We begin with survival and breeding at $AK$, $PR$, and $NU$, followed by migration toward $CA$ and $GC$. If hunting is included in the model it happens during the fall migration. The breeding rate is density dependent.
+\item Winter and Spring Migration/Stopover: Next the migrants survive the winter and migrate toward $PR$ and $AK$. Post harvest survival is density dependent.
+\item Final Spring Migration: Some migrants will choose to use $PR$ as a stop over and complete their migration by continuing on to $AK$ or $NU$ from $PR$. The transition probabilities are density dependent and depend on the number of ponds at $PR$.
+\end{itemize}
+
+We use a generalized network model formulation were we define one time step as
+
+\begin{equation}
+\vec{\mathbf{N}}_{t+1}={\mathbf{A}_t}\vec{\mathbf{N}}_t
+\end{equation}
+
+Where $\vec{\mathbf{N}}_{t}$ contains the population at each of the $n$ nodes and $c$ classes at time $t$. The matrix $\mathbf{A}_t$ contains all of the demographic node update and migration data for time $t$.
+
+<<label=runscript, eval=TRUE, echo=FALSE, results=hide>>=
+
+## RUN the pintail code
+RERUN <- F #Set to TRUE to rerun the full perturbation simulations, FALSE to just redo the analysis and pdf.
+
+if(RERUN == T){
+  source("../PintailSimulation.R") 
+  RERUN <- T
+}
+
+if(RERUN == F){
+  load("PERTdatanew_flyover_DS.RData") # Load R data from the file
+  print("Using Existing Data in Environment!!!!")
+}
+
+library(xtable)
+library(data.table)
+@
+
+<<label=runscript, eval=TRUE, echo=FALSE, results=hide>>=
+
+if(RERUN == T){
+  source("Perturb_Document_Code_Data/PERTpintails.R")
+  RERUN <- T
+}
+
+@
+
+\section{Baseline Simulation}
+% 
+The baseline simulation gives us identical results to {\it{A modeling framework for integrated harvest and habitat management of North American waterfowl: Case-study of northern pintail metapopulation dynamics}} by Mattsson et. al. For the case of no harvesting we find that the long term carrying capacity for each node during each season, including all classes, is
+
+<<label=baselineK, echo=FALSE, eval=TRUE>>=
+for (j in 1:seasons){
+  cat("\nseason", j, ": k=", BASEPop_TOTAL[,j])
+}
+@
+
+
+<<label=pintailbaseline, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE, fig.path=paste(SIMNAME)>>=
+time_steps <- 0:BASEtimestep/seasons
+STEPwidth <- seasons
+STEPstart <- 1
+graphbot <- 0 
+graphtop <- max(BASEtotal_pop)
+dottype <- data.frame(matrix(0,1,NUMNET))
+dottype[1] <- 20
+
+plot(c(0),c(0),type="l", 
+     main=paste("Total Network Population vs. Time \n Single Annual Survey (beginning of season 1)"),
+     ylim = c(graphbot,graphtop), 
+     xlim = c(min(time_steps),max(time_steps)),
+     xlab="Years",
+     ylab="Total Population")
+
+xplot <- time_steps[seq(STEPstart, length(time_steps),by=STEPwidth)]
+
+for(i in 1:NUMNET){
+  par(new=TRUE)
+  yplot <- BASEtotal_pop[i,seq(STEPstart, length(time_steps),by=STEPwidth)]
+  dot <- as.double(dottype[i])
+  plot(xplot,yplot,
+       type="o", 
+       lty=1, 
+       pch=dot,
+       ylim = c(graphbot,graphtop), 
+       xlim = c(min(time_steps),max(time_steps)), 
+       axes="FALSE", 
+       xlab = "", 
+       ylab = "")
+  
+  dottype[i+1] <- dottype[i] + 1
+}
+rm(i)
+
+legend('right', NETNAME , lty=1, pch=dottype, bty='n', cex=.75)
+@
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.7\textwidth, height=.6\textwidth]{RGraphics-pintailbaseline}
+\caption{Baseline results: population over time at wintering node before breeding.}\label{fig:pintailbaseline}
+\end{center}
+\end{figure}
+
+Within the pintail code we calculate the $C^r$ values for both the origin and the intermediate nodes during each season. We use a generalized definition of $C^r$ in matrix form:
+
+\begin{equation}
+\vec{\mathbf{C}}_t=\left(\prod_{\tau=t}^{t+s-1}\mathbf{A}_\tau^T\right)\vec{\mathbf{1}}_{nc}
+\end{equation}
+
+where $s$ is the total number of seasons in one anual cycle, for the pintails $s=3$ and $\vec{\mathbf{C}}_t$ is a column vector that contains the $C^r$ values at each node for each class for focal season, or time, $t$. 
+
+We note that because the code is run to equillibrium, the overall growth rate of the nework is equal to one. We can calculate the growth rate using:
+
+\begin{equation}
+\lambda_t= \frac{\vec{\mathbf{N}}_t^T}{N_t^{tot}}\vec{\mathbf{C}}_t
+\label{lambda}
+\end{equation}\\
+where $N_t^{tot}$ is the sum of the equilibrium population values across all nodes and all classes in the network and is represented by the following summation
+\begin{equation}
+N_t^{tot}=\sum_{r=1}^n\sum_{x=1}^{c}N^x_{r,t}
+\end{equation}
+
+<<label=baselineCRS, echo=FALSE, eval=TRUE, results=tex>>=
+print(xtable(BASECR,digits=5, table.placement="H", caption=c("Baseline One Equation $C^r$ Steady State")), sanitize.text.function = function(CR){CR})
+@
+
+To re-run the simulations you need the following files:
+\begin{itemize}
+\item All code found in the file NetworkCode1.2\_NewEqn -- this contains the general network code, you should not need to interact with this.
+\item The separate folder CodePintails\_NewEqn you need:
+\begin{itemize}
+\item PintaiSimulation.R -- this runs the baseline simulation using data found in the Baseline1 folder
+\item SpeciesFunctions.R -- this contains the density dependent functions specific to the Pintails
+\end{itemize}
+\item In the folder Perturn\_Document\_Code\_Data you will find:
+\begin{itemize}
+\item PERT\_pintails.R -- this code runs the perturbation experiments
+\item Pintail\_Perturb\_New\_1\_26\_18.Rnw -- this code runs and compiles the analysis in the .pdf. On line 61 of this file you can change rerun=TRUE which will rerun all of the perturbation analysis, but this takes time and should be avoided unless other changes to the code are made.
+\end{itemize}
+\item Right now file structure is important. In other words, keep the file locations and file names the same so the code knows where to look for each piece of the code.
+\end{itemize}
+
+\clearpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Perturbation Experiment - Perturbing Node Survival Rates}
+
+To investigate the utility of $C^R$ as an indicator of the change in carrying capacity $K$ we consider the following perturbations to the survival rate at each node:
+
+\[PERT = 1.2,1.1,.9,.8\]
+
+Some notes about the simulations:
+\begin{itemize}
+\item All simulations are run to equillibrium with an error tollerance of within 1 animal, meaning the network growth rate $\lambda=1$.
+\item We are considering only the Female population in our analysis, so that while the full network is at equillibrium, the Female only $C^r$ values will be greater than one.
+\item The simulations are run using three seasons (Breading, Winter, and Stopover) to account for densitiy dependent migration in the spring, however $C^r$ values will be calculated using only the Breeding (season 1) and Winter (season 2) data.
+\end{itemize}
+%  
+
+Data from these simulations is stored in the file PERTdata.RData, this file contains the following perterbation variables:
+
+\begin{itemize}
+\item PERT - contains the perturbation ammounts used
+\item PERT\_CR - contains full CR results for each simulation
+\item PERT\_N - contains the full population numbers for each node-class-step of each perturbation simulation
+\item PERT\_Pop\_TOTAL - contains the total, summed, popution for each sumulation
+\item PERT\_timestep - continns the last breeding time step in the simulation when the population is in equilibrium.
+\end{itemize}
+
+To re-run or alter this .pdf. Open the file Pintail\_Perturb\_New\_1\_26\_18.Rnw in R. Load the data file and then press Compile PDF to run the scripts imbeded in this file.
+
+\newpage
+
+% % PLOTS OF PERTURBATION RESULTS:
+
+\subsection{Change in Carrying Capacity as a function of $C^r$}
+
+\vspace{-.75cm}
+Figure \ref{fig:pintailcr} plots how the perturbations to a nodes survival rate effects both the network carrying capacity (adult female only) and the nodes $C^r$ value. Here we plot the change in carrying capacity from baseline as a function of $C^r$. Data for this plot is on the next page.
+
+% CHANGE IN K vs CR  
+<<label=pintailcr, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+
+# Find change in  carrying capacity for female only population breeding season:
+rm(DELTA_K)
+DELTA_K <- matrix(0,count)
+K <- matrix(0,count)
+BASEK <- sum(BASEN[seq(1,NUMNET*num_nodes,by=NUMNET),BASEtimestep])
+for (i in 1:count){
+  NEWK <- sum(PERT_N[[i]][seq(1,NUMNET*num_nodes,by=NUMNET),PERT_timestep[[i]]])
+  DELTA_K[i] <- NEWK - BASEK
+  K[i] <- NEWK
+}
+
+# Female CR values for seasons 1,2 corresponding to Breeding and Witering seasons. 
+PLOTCR <- matrix(0,nrow = count,ncol = num_nodes)
+PLOTBASECR <- rowSums(BASECR[seq(1,NUMNET*num_nodes,by=NUMNET),1:seasons-1])
+for (i in 1:count){
+  NEWCR <- rowSums(PERT_CR[[i]][seq(1,NUMNET*num_nodes,by=NUMNET),1:seasons-1])
+  PLOTCR[i,] <- NEWCR
+}
+
+# Start Plot frame
+par(new = FALSE)
+plot(0, 0, 
+     type="l", 
+     lwd=0, 
+     xlim = c(0,max(PLOTCR)), 
+     ylim = c(min(DELTA_K),max(DELTA_K)), 
+     main="Change in Carying Capacity vs. CR \n (CR values from Breeding and Wintering seasons)",  
+     xlab="CR", 
+     ylab="Change in K")
+symb <- 0
+
+# For each of the nodes plot the data
+for(j in 1:num_nodes){
+  par(new = TRUE)
+  # Plot the Baseline Values
+  plot(PLOTBASECR[j], 0, 
+        type="o", 
+        lwd=1, 
+        pch=symb, 
+        xlim = c(0, max(PLOTCR)), 
+        ylim = c(min(DELTA_K),max(DELTA_K)), 
+        axes = FALSE,  
+        xlab="", 
+        ylab="")
+  
+  par(new = TRUE)
+  # Plot the Perturbed Values for the given node
+  plot(PLOTCR[seq(j,num_nodes*length(PERT),by=num_nodes),j], DELTA_K[seq(j,num_nodes*length(PERT),by=num_nodes)], 
+       type="o", 
+       lwd=1, 
+       pch=symb, 
+       xlim = c(0,max(PLOTCR)), 
+       ylim = c(min(DELTA_K),max(DELTA_K)), 
+       axes = FALSE,  
+       xlab="", 
+       ylab="")
+  symb <- symb +1
+}
+rm(j)
+@
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.9\textwidth, height=\textwidth]{RGraphics-pintailcr}
+\caption{Perturbation results: Change in baseline carrying capacity vs. $C^r$ values for reductions in the survival rates at each of the nodes. Note: $C^r$ vales as reported in Breading and Wintering seasons.}\label{fig:pintailcr}
+\end{center}
+\end{figure}
+
+\vspace{-1cm}
+\begin{tabular}{|c|c|}
+\hline
+AK & $\Box$ \\
+\hline
+PR & $\bigcirc$ \\
+\hline
+NU & $\triangle$ \\
+\hline
+CA & $+$ \\
+\hline
+GC & $\times$ \\
+\hline
+\end{tabular}
+
+%DATA
+\begin{landscape}
+<<label=DATA, echo=FALSE, eval=TRUE, results=tex>>=
+rm(TABLEDATA)
+for(j in 1:num_nodes){
+  TABLECR <- PLOTCR[seq(j,num_nodes*length(PERT),by=num_nodes),j]
+  TABLEDELTAK <- DELTA_K[seq(j,num_nodes*length(PERT),by=num_nodes)]
+  if(j==1){
+    TABLEDATA <- cbind(TABLECR,TABLEDELTAK)
+  } else {
+    TABLEDATA <- cbind(TABLEDATA,TABLECR,TABLEDELTAK)
+  }
+}
+TABLEBASE <- matrix(0, 1, 2*num_nodes)
+for(i in 1:num_nodes){
+  TABLEBASE[2*i-1] <- PLOTBASECR[i]
+}
+TABLEDATA <- rbind(TABLEBASE, TABLEDATA)
+RNames <- c('BASELINE',as.character(PERT))
+rownames(TABLEDATA)<-RNames
+colnames(TABLEDATA)<- c('AK - CR','AK - K','PR - CR','PR - K','NU - CR','NU - K','CA - CR','CA - K','GC - CR','GC - K')
+print(xtable(TABLEDATA,digits=3, table.placement="H", caption=c("Data for Change in Carying Capacity vs CR")))
+@
+\end{landscape}
+
+\clearpage
+
+\subsection{Sensitivity: Change in Carrying Capacity as a function of Change in $C^r$}
+
+\vspace{-.75cm}
+Figure \ref{fig:pintaildelta_cr} plots how the perturbations to a nodes survival rate effects both the network carrying capacity (adult female only) and the nodes $C^r$ value. Here we plot the change in carrying capacity from baseline as a function of the change in $C^r$ from baseline. Data for this plot is on the next page.
+
+% CHANGE IN K vs CHANGE IN CR 
+<<label=pintaildelta_cr, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+
+# Change in Female CR values
+PLOTDELTACR <- matrix(0,nrow = count,ncol = num_nodes)
+for (i in 1:count){
+  PLOTDELTACR[i,] <- PLOTCR[i,]-PLOTBASECR
+}
+
+plot(0, 0, type="l", lwd=0, xlim = c(min(PLOTDELTACR),max(PLOTDELTACR)), ylim = c(min(DELTA_K),max(DELTA_K)), main="Change in Carying Capacity vs. Change in CR \n (CR values from Breeding and Wintering seasons) \n Perturbations to individual nodes",  xlab="Change in CR", ylab="Change in K")
+symb <- 0
+for(j in 1:num_nodes){
+  par(new = TRUE)
+  # Plot the Baseline Values
+  plot(0, 0, type="o", lwd=1, pch=symb, xlim = c(min(PLOTDELTACR), max(PLOTDELTACR)), ylim = c(min(DELTA_K),max(DELTA_K)), axes = FALSE,  xlab="", ylab="")
+  par(new = TRUE)
+  
+  # Plot the Perturbed Valeus for the given node
+  plot(PLOTDELTACR[seq(j,num_nodes*length(PERT),by=num_nodes),j], DELTA_K[seq(j,num_nodes*length(PERT),by=num_nodes)], type="o", lwd=1, pch=symb, xlim = c(min(PLOTDELTACR),max(PLOTDELTACR)), ylim = c(min(DELTA_K),max(DELTA_K)), axes = FALSE,  xlab="", ylab="")
+  symb <- symb +1
+}
+rm(j)
+@
+
+\begin{figure}[H]
+\begin{center}
+\includegraphics[width=.9\textwidth, height=\textwidth]{RGraphics-pintaildelta_cr}
+\caption{Perturbation results: Change in baseline carrying capacity vs. chante in $C^r$ values for reductions in the survival rates at each of the nodes. Note: $C^r$ vales as reported in Breading and Wintering seasons.}\label{fig:pintaildelta_cr}
+\end{center}
+\end{figure}
+
+\vspace{-1cm}
+\begin{tabular}{|c|c|}
+\hline
+AK & $\Box$ \\
+\hline
+PR & $\bigcirc$ \\
+\hline
+NU & $\triangle$ \\
+\hline
+CA & $+$ \\
+\hline
+GC & $\times$ \\
+\hline
+\end{tabular}
+
+% DATA
+\begin{landscape}
+<<label=table:pintaildelta_cr, echo=FALSE, eval=TRUE, results=tex>>=
+rm(TABLEDATA)
+for(j in 1:num_nodes){
+  TABLECR <- PLOTDELTACR[seq(j,num_nodes*length(PERT),by=num_nodes),j]
+  TABLEDELTAK <- DELTA_K[seq(j,num_nodes*length(PERT),by=num_nodes)]
+  if(j==1){
+    TABLEDATA <- cbind(TABLECR,TABLEDELTAK)
+  } else {
+    TABLEDATA <- cbind(TABLEDATA,TABLECR,TABLEDELTAK)
+  }
+}
+TABLEBASE <- matrix(0, 1, 2*num_nodes)
+for(i in 1:num_nodes){
+  TABLEBASE[2*i-1] <- PLOTBASECR[i]
+}
+TABLEDATA <- rbind(TABLEBASE, TABLEDATA)
+RNames <- c('BASELINE',as.character(PERT))
+rownames(TABLEDATA)<-RNames
+colnames(TABLEDATA)<- c('AK - CR','AK - K','PR - CR','PR - K','NU - CR','NU - K','CA - CR','CA - K','GC - CR','GC - K')
+print(xtable(TABLEDATA,digits=3, table.placement="H", caption=c("Data for Change in Carying Capacity vs Change in CR")), label = "table:pintaildelta_cr")
+@
+\end{landscape}
+
+% \clearpage
+% 
+% \subsection{Range of $C^r$ values for each Perturbation}
+% 
+% \vspace{-.75cm}
+% Figure \ref{fig:pintail_barcr} plots how the perturbations to a nodes survival rate effects the range of network carrying capacities (adult female only) for each node. Here we plot the each node in order of it's $C^r$ value along with maximum and minumim carrying capacity values. Data for this plot is on the next page. Here the top mark represents a perturbation of $1.2$ and the bottom mark a perturbation of $0.1$. The blue line represents the baseline carrying capacity.
+% 
+% % RANGE IN CR VALUES FOR EACH NODE OVER PERTURBATIONS TO THAT NODE
+% <<label=pintail_barcr, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+% 
+% # Find MAX/MIN K values
+% PLOTMAXK <- matrix(0,num_nodes,1)
+% PLOTMINK <- matrix(0,num_nodes,1)
+% 
+%  for(i in 1:num_nodes){
+%    PLOTMAXK[i] <- max(K[seq(i,num_nodes*length(PERT),by=num_nodes)])
+%    PLOTMINK[i] <- min(K[seq(i,num_nodes*length(PERT),by=num_nodes)])
+%  }
+% 
+% plot(0, 0, 
+%      type="l", 
+%      lwd=0, 
+%      xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+%      ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+%      main="Range of K values for each node.",  
+%      xlab="Node Baseline $C^r$", 
+%      ylab="Network K")
+% symb <- 0
+% 
+% DATAPLOT <- matrix(0,num_nodes,length(PERT))
+% 
+% for(j in 1:num_nodes){
+%   par(new = TRUE)
+%   # Plot the range for each node
+%   
+%   DATAPLOT[j,] <- K[seq(j,num_nodes*length(PERT),by=num_nodes)]
+%   plot(matrix(PLOTBASECR[j],1,length(PERT)),K[seq(j,num_nodes*length(PERT),by=num_nodes)], 
+%        type="o", 
+%        lwd=1, 
+%        pch=symb, 
+%        xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+%        ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+%        axes = FALSE,  
+%        xlab="", 
+%        ylab="")
+%   symb <- symb +1
+% }
+% 
+% abline(h = BASEK, col="blue",)
+% 
+% # OLD CODE
+% # for(j in 1:num_nodes){
+% #   par(new = TRUE)
+% #   # Plot the range for each node
+% #   plot(PLOTBASECR[j], PLOTMAXK[j], 
+% #        type="o", 
+% #        lwd=1, 
+% #        pch=symb, 
+% #        xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+% #        ylim = c(min(PLOTMINK),max(PLOTMAXK)), 
+% #        axes = FALSE,  
+% #        xlab="", 
+% #        ylab="")
+% #   par(new = TRUE)
+% #     plot(PLOTBASECR[j], PLOTMINK[j], 
+% #        type="o", 
+% #        lwd=1, 
+% #        pch=symb, 
+% #        xlim = c(min(PLOTBASECR),max(PLOTBASECR)), 
+% #        ylim = c(min(PLOTMINK),max(PLOTMAXK)),  
+% #        axes = FALSE,  
+% #        xlab="", 
+% #        ylab="")
+% #   symb <- symb +1
+% # }
+% rm(j)
+% @
+% 
+% \vspace{-.5cm}
+% \begin{figure}[H]
+% \begin{center}
+% \includegraphics[width=.9\textwidth, height=\textwidth]{RGraphics-pintail_barcr}
+% \caption{Perturbation results: Range of K values after perturbations to each node, X-axis represents baseline $C^r$ value for each node}\label{fig:pintail_barcr}
+% \end{center}
+% \end{figure}
+% 
+% \vspace{-.5cm}
+% \begin{tabular}{|c|c|}
+% \hline
+% AK & $\Box$ \\
+% \hline
+% PR & $\bigcirc$ \\
+% \hline
+% NU & $\triangle$ \\
+% \hline
+% CA & $+$ \\
+% \hline
+% GC & $\times$ \\
+% \hline
+% \end{tabular}
+% % DATA
+% %\vspace{-3cm}
+% 
+% \begin{landscape}
+% <<label=DATA, echo=FALSE, eval=TRUE, results=tex>>=
+% rm(TABLEDATA1, TABLEDATA2)
+% TABLEDATA1 <- cbind(PLOTBASECR,DATAPLOT[,1:6])
+% colnames(TABLEDATA1)<- c('CR', PERT[1:6])
+% print(xtable(TABLEDATA1,digits=3, table.placement="H", caption=c("Data for Carying Capacity Range vs $C^r$")))
+% 
+% TABLEDATA2 <- cbind(PLOTBASECR,DATAPLOT[,7:length(PERT)])
+% colnames(TABLEDATA2)<- c('CR', PERT[7:length(PERT)])
+% print(xtable(TABLEDATA2,digits=3, table.placement="H", caption=c("Data for Carying Capacity Range vs $C^r$")))
+% @
+% \end{landscape}
+% 
+% \clearpage
+% 
+% 
+% \subsection{Analysis of Node 1 - AK}
+% 
+% \vspace{-.75cm}
+% Figure \ref{fig:pintailcr_N1} considers how perturbations to just NODE 1 (AK) effect the $C^r$ values or the other nodes across the network. In previous plots we showed how perturbations to a node changed that nodes $C^r$ values, however it might be usefull to see network wide effects from the perturbations on one node. Data for this plot is on the next page.
+% 
+% <<label=baselineCR, echo=FALSE, eval=TRUE, results=tex>>=
+% NODE <- 1
+% cat("NOTE:",labels(PLOTBASECR)[NODE], "Baseline CR =",PLOTBASECR[NODE])
+% @
+% 
+% <<label=pintailcr_N1, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+% NODE <- 1
+% 
+% # Start Plot frame
+% plot(0, 0, 
+%      type="l", 
+%      lwd=0, 
+%      xlim = c(0,max(PLOTCR)), 
+%      ylim = c(min(DELTA_K),max(DELTA_K)), 
+%      main="Change in Carying Capacity vs. CR \n (Perturbations to only NODE 1)",  
+%      xlab="CR", 
+%      ylab="Change in K")
+% symb <- 0
+% 
+% for(j in 1:num_nodes){
+%   par(new = TRUE)
+%   # Plot the Baseline Values
+%   plot(PLOTBASECR[j], 0, 
+%        type="o", 
+%        lwd=1, 
+%        pch=symb, 
+%        xlim = c(0, max(PLOTCR)), 
+%        ylim = c(min(DELTA_K),max(DELTA_K)), 
+%        axes = FALSE,  
+%        xlab="", 
+%        ylab="")
+%  
+%    par(new = TRUE)
+%   # Plot the values for each perturbation to NODE
+%   plot(PLOTCR[seq(NODE,num_nodes*length(PERT),by=num_nodes),j], DELTA_K[seq(NODE,num_nodes*length(PERT),by=num_nodes)], 
+%        type="o", 
+%        lwd=1, 
+%        pch=symb, 
+%        xlim = c(0,max(PLOTCR)), 
+%        ylim = c(min(DELTA_K),max(DELTA_K)), 
+%        axes = FALSE,  
+%        xlab="", 
+%        ylab="")
+%   symb <- symb +1
+% }
+% rm(j)
+% @
+% 
+% \begin{figure}[H]
+% \begin{center}
+% \includegraphics[width=.9\textwidth, height=\textwidth]{RGraphics-pintailcr_N1}
+% \caption{Perturbation results: Change in baseline carrying capacity vs. $C^r$ values for reductions in the survival rates at Node 1, AK}\label{fig:pintailcr_N1}
+% \end{center}
+% \end{figure}
+% 
+% \vspace{-1cm}
+% \begin{tabular}{|c|c|}
+% \hline
+% AK & $\Box$ \\
+% \hline
+% PR & $\bigcirc$ \\
+% \hline
+% NU & $\triangle$ \\
+% \hline
+% CA & $+$ \\
+% \hline
+% GC & $\times$ \\
+% \hline
+% \end{tabular}
+% 
+% %DATA
+% \begin{landscape}
+% <<label=DATA, echo=FALSE, eval=TRUE, results=tex>>=
+% rm(TABLEDATA)
+% for(j in 1:num_nodes){
+%   TABLECR <- PLOTCR[seq(NODE,num_nodes*length(PERT),by=num_nodes),j]
+%   TABLEDELTAK <- DELTA_K[seq(NODE,num_nodes*length(PERT),by=num_nodes)]
+%   if(j==1){
+%     TABLEDATA <- cbind(TABLECR,TABLEDELTAK)
+%   } else {
+%     TABLEDATA <- cbind(TABLEDATA,TABLECR,TABLEDELTAK)
+%   }
+% }
+% TABLEBASE <- matrix(0, 1, 2*num_nodes)
+% for(i in 1:num_nodes){
+%   TABLEBASE[2*i-1] <- PLOTBASECR[i]
+% }
+% TABLEDATA <- rbind(TABLEBASE, TABLEDATA)
+% RNames <- c('BASELINE',as.character(PERT))
+% rownames(TABLEDATA)<-RNames
+% colnames(TABLEDATA)<- c('AK - CR','AK - K','PR - CR','PR - K','NU - CR','NU - K','CA - CR','CA - K','GC - CR','GC - K')
+% print(xtable(TABLEDATA,digits=3, table.placement="H", caption=c("Data for Change in Carying Capacity vs CR")))
+% @
+% \end{landscape}
+% 
+% \clearpage
+% 
+% 
+% \subsection{Analysis of Node 2 - PR}
+% 
+% \vspace{-.75cm}
+% Figure \ref{fig:pintailcr_N2} considers how perturbations to just NODE 2 (PR) effect the $C^r$ values or the other nodes across the network. Data for this plot is on the next page.
+% 
+% <<label=baselineCR, echo=FALSE, eval=TRUE, results=tex>>=
+% NODE <- 2
+% cat("NOTE:",labels(PLOTBASECR)[NODE], "Baseline CR =",PLOTBASECR[NODE])
+% @
+% 
+% <<label=pintailcr_N2, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+% NODE <- 2
+% 
+% # Start Plot frame
+% plot(0, 0, 
+%      type="l", 
+%      lwd=0, 
+%      xlim = c(0,max(PLOTCR)), 
+%      ylim = c(min(DELTA_K),max(DELTA_K)), 
+%      main="Change in Carying Capacity vs. CR \n (Perturbations to only NODE 2)",  
+%      xlab="CR", 
+%      ylab="Change in K")
+% symb <- 0
+% 
+% for(j in 1:num_nodes){
+%   par(new = TRUE)
+%   # Plot the Baseline Values
+%   plot(PLOTBASECR[j], 0, 
+%        type="o", 
+%        lwd=1, 
+%        pch=symb, 
+%        xlim = c(0, max(PLOTCR)), 
+%        ylim = c(min(DELTA_K),max(DELTA_K)), 
+%        axes = FALSE,  
+%        xlab="", 
+%        ylab="")
+%  
+%    par(new = TRUE)
+%   # Plot the values for each perturbation to NODE
+%   plot(PLOTCR[seq(NODE,num_nodes*length(PERT),by=num_nodes),j], DELTA_K[seq(NODE,num_nodes*length(PERT),by=num_nodes)], 
+%        type="o", 
+%        lwd=1, 
+%        pch=symb, 
+%        xlim = c(0,max(PLOTCR)), 
+%        ylim = c(min(DELTA_K),max(DELTA_K)), 
+%        axes = FALSE,  
+%        xlab="", 
+%        ylab="")
+%   symb <- symb +1
+% }
+% rm(j)
+% @
+% 
+% \begin{figure}[H]
+% \begin{center}
+% \includegraphics[width=.9\textwidth, height=\textwidth]{RGraphics-pintailcr_N2}
+% \caption{Perturbation results: Change in baseline carrying capacity vs. $C^r$ values for reductions in the survival rates at Node 2, PR}\label{fig:pintailcr_N2}
+% \end{center}
+% \end{figure}
+% 
+% \vspace{-1cm}
+% \begin{tabular}{|c|c|}
+% \hline
+% AK & $\Box$ \\
+% \hline
+% PR & $\bigcirc$ \\
+% \hline
+% NU & $\triangle$ \\
+% \hline
+% CA & $+$ \\
+% \hline
+% GC & $\times$ \\
+% \hline
+% \end{tabular}
+% 
+% %DATA
+% \begin{landscape}
+% <<label=DATA, echo=FALSE, eval=TRUE, results=tex>>=
+% rm(TABLEDATA)
+% for(j in 1:num_nodes){
+%   TABLECR <- PLOTCR[seq(NODE,num_nodes*length(PERT),by=num_nodes),j]
+%   TABLEDELTAK <- DELTA_K[seq(NODE,num_nodes*length(PERT),by=num_nodes)]
+%   if(j==1){
+%     TABLEDATA <- cbind(TABLECR,TABLEDELTAK)
+%   } else {
+%     TABLEDATA <- cbind(TABLEDATA,TABLECR,TABLEDELTAK)
+%   }
+% }
+% TABLEBASE <- matrix(0, 1, 2*num_nodes)
+% for(i in 1:num_nodes){
+%   TABLEBASE[2*i-1] <- PLOTBASECR[i]
+% }
+% TABLEDATA <- rbind(TABLEBASE, TABLEDATA)
+% RNames <- c('BASELINE',as.character(PERT))
+% rownames(TABLEDATA)<-RNames
+% colnames(TABLEDATA)<- c('AK - CR','AK - K','PR - CR','PR - K','NU - CR','NU - K','CA - CR','CA - K','GC - CR','GC - K')
+% print(xtable(TABLEDATA,digits=3, table.placement="H", caption=c("Data for Change in Carying Capacity vs CR")))
+% @
+% \end{landscape}
+% 
+% \clearpage
+% 
+% \subsection{Analysis of Node 3 - NU}
+% 
+% \vspace{-.75cm}
+% Figure \ref{fig:pintailcr_N3} considers how perturbations to just NODE 3 (NU) effect the $C^r$ values or the other nodes across the network. Data for this plot is on the next page.
+% 
+% <<label=baselineCR, echo=FALSE, eval=TRUE, results=tex>>=
+% NODE <- 3
+% cat("NOTE:",labels(PLOTBASECR)[NODE], "Baseline CR =",PLOTBASECR[NODE])
+% @
+% 
+% <<label=pintailcr_N3, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+% NODE <- 3
+% 
+% # Start Plot frame
+% plot(0, 0, 
+%      type="l", 
+%      lwd=0, 
+%      xlim = c(0,max(PLOTCR)), 
+%      ylim = c(min(DELTA_K),max(DELTA_K)), 
+%      main="Change in Carying Capacity vs. CR \n (Perturbations to only NODE 3)",  
+%      xlab="CR", 
+%      ylab="Change in K")
+% symb <- 0
+% 
+% for(j in 1:num_nodes){
+%   par(new = TRUE)
+%   # Plot the Baseline Values
+%   plot(PLOTBASECR[j], 0, 
+%        type="o", 
+%        lwd=1, 
+%        pch=symb, 
+%        xlim = c(0, max(PLOTCR)), 
+%        ylim = c(min(DELTA_K),max(DELTA_K)), 
+%        axes = FALSE,  
+%        xlab="", 
+%        ylab="")
+%  
+%    par(new = TRUE)
+%   # Plot the values for each perturbation to NODE
+%   plot(PLOTCR[seq(NODE,num_nodes*length(PERT),by=num_nodes),j], DELTA_K[seq(NODE,num_nodes*length(PERT),by=num_nodes)], 
+%        type="o", 
+%        lwd=1, 
+%        pch=symb, 
+%        xlim = c(0,max(PLOTCR)), 
+%        ylim = c(min(DELTA_K),max(DELTA_K)), 
+%        axes = FALSE,  
+%        xlab="", 
+%        ylab="")
+%   symb <- symb +1
+% }
+% rm(j)
+% @
+% 
+% \begin{figure}[H]
+% \begin{center}
+% \includegraphics[width=.9\textwidth, height=\textwidth]{RGraphics-pintailcr_N3}
+% \caption{Perturbation results: Change in baseline carrying capacity vs. $C^r$ values for reductions in the survival rates at Node 3, NU}\label{fig:pintailcr_N3}
+% \end{center}
+% \end{figure}
+% 
+% \vspace{-1cm}
+% \begin{tabular}{|c|c|}
+% \hline
+% AK & $\Box$ \\
+% \hline
+% PR & $\bigcirc$ \\
+% \hline
+% NU & $\triangle$ \\
+% \hline
+% CA & $+$ \\
+% \hline
+% GC & $\times$ \\
+% \hline
+% \end{tabular}
+% 
+% %DATA
+% \begin{landscape}
+% <<label=DATA, echo=FALSE, eval=TRUE, results=tex>>=
+% rm(TABLEDATA)
+% for(j in 1:num_nodes){
+%   TABLECR <- PLOTCR[seq(NODE,num_nodes*length(PERT),by=num_nodes),j]
+%   TABLEDELTAK <- DELTA_K[seq(NODE,num_nodes*length(PERT),by=num_nodes)]
+%   if(j==1){
+%     TABLEDATA <- cbind(TABLECR,TABLEDELTAK)
+%   } else {
+%     TABLEDATA <- cbind(TABLEDATA,TABLECR,TABLEDELTAK)
+%   }
+% }
+% TABLEBASE <- matrix(0, 1, 2*num_nodes)
+% for(i in 1:num_nodes){
+%   TABLEBASE[2*i-1] <- PLOTBASECR[i]
+% }
+% TABLEDATA <- rbind(TABLEBASE, TABLEDATA)
+% RNames <- c('BASELINE',as.character(PERT))
+% rownames(TABLEDATA)<-RNames
+% colnames(TABLEDATA)<- c('AK - CR','AK - K','PR - CR','PR - K','NU - CR','NU - K','CA - CR','CA - K','GC - CR','GC - K')
+% print(xtable(TABLEDATA,digits=3, table.placement="H", caption=c("Data for Change in Carying Capacity vs CR")))
+% @
+% \end{landscape}
+% 
+% \clearpage
+% 
+% \subsection{Analysis of Node 4 - CA}
+% 
+% \vspace{-.75cm}
+% Figure \ref{fig:pintailcr_N4} considers how perturbations to just NODE 4 (CA) effect the $C^r$ values or the other nodes across the network. Data for this plot is on the next page.
+% 
+% <<label=baselineCR, echo=FALSE, eval=TRUE, results=tex>>=
+% NODE <- 4
+% cat("NOTE:",labels(PLOTBASECR)[NODE], "Baseline CR =",PLOTBASECR[NODE])
+% @
+% 
+% <<label=pintailcr_N4, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+% NODE <- 4
+% 
+% # Start Plot frame
+% plot(0, 0, 
+%      type="l", 
+%      lwd=0, 
+%      xlim = c(0,max(PLOTCR)), 
+%      ylim = c(min(DELTA_K),max(DELTA_K)), 
+%      main="Change in Carying Capacity vs. CR \n (Perturbations to only NODE 4)",  
+%      xlab="CR", 
+%      ylab="Change in K")
+% symb <- 0
+% 
+% for(j in 1:num_nodes){
+%   par(new = TRUE)
+%   # Plot the Baseline Values
+%   plot(PLOTBASECR[j], 0, 
+%        type="o", 
+%        lwd=1, 
+%        pch=symb, 
+%        xlim = c(0, max(PLOTCR)), 
+%        ylim = c(min(DELTA_K),max(DELTA_K)), 
+%        axes = FALSE,  
+%        xlab="", 
+%        ylab="")
+%  
+%    par(new = TRUE)
+%   # Plot the values for each perturbation to NODE
+%   plot(PLOTCR[seq(NODE,num_nodes*length(PERT),by=num_nodes),j], DELTA_K[seq(NODE,num_nodes*length(PERT),by=num_nodes)], 
+%        type="o", 
+%        lwd=1, 
+%        pch=symb, 
+%        xlim = c(0,max(PLOTCR)), 
+%        ylim = c(min(DELTA_K),max(DELTA_K)), 
+%        axes = FALSE,  
+%        xlab="", 
+%        ylab="")
+%   symb <- symb +1
+% }
+% rm(j)
+% @
+% 
+% \begin{figure}[H]
+% \begin{center}
+% \includegraphics[width=.9\textwidth, height=\textwidth]{RGraphics-pintailcr_N4}
+% \caption{Perturbation results: Change in baseline carrying capacity vs. $C^r$ values for reductions in the survival rates at Node 4, CA}\label{fig:pintailcr_N4}
+% \end{center}
+% \end{figure}
+% 
+% \vspace{-1cm}
+% \begin{tabular}{|c|c|}
+% \hline
+% AK & $\Box$ \\
+% \hline
+% PR & $\bigcirc$ \\
+% \hline
+% NU & $\triangle$ \\
+% \hline
+% CA & $+$ \\
+% \hline
+% GC & $\times$ \\
+% \hline
+% \end{tabular}
+% 
+% %DATA
+% \begin{landscape}
+% <<label=DATA, echo=FALSE, eval=TRUE, results=tex>>=
+% rm(TABLEDATA)
+% for(j in 1:num_nodes){
+%   TABLECR <- PLOTCR[seq(NODE,num_nodes*length(PERT),by=num_nodes),j]
+%   TABLEDELTAK <- DELTA_K[seq(NODE,num_nodes*length(PERT),by=num_nodes)]
+%   if(j==1){
+%     TABLEDATA <- cbind(TABLECR,TABLEDELTAK)
+%   } else {
+%     TABLEDATA <- cbind(TABLEDATA,TABLECR,TABLEDELTAK)
+%   }
+% }
+% TABLEBASE <- matrix(0, 1, 2*num_nodes)
+% for(i in 1:num_nodes){
+%   TABLEBASE[2*i-1] <- PLOTBASECR[i]
+% }
+% TABLEDATA <- rbind(TABLEBASE, TABLEDATA)
+% RNames <- c('BASELINE',as.character(PERT))
+% rownames(TABLEDATA)<-RNames
+% colnames(TABLEDATA)<- c('AK - CR','AK - K','PR - CR','PR - K','NU - CR','NU - K','CA - CR','CA - K','GC - CR','GC - K')
+% print(xtable(TABLEDATA,digits=3, table.placement="H", caption=c("Data for Change in Carying Capacity vs CR")))
+% @
+% \end{landscape}
+% 
+% \clearpage
+% 
+% \subsection{Analysis of Node 5 - GC}
+% 
+% \vspace{-.75cm}
+% Figure \ref{fig:pintailcr_N1} considers how perturbations to just NODE 5 (GC) effect the $C^r$ values or the other nodes across the network. Data for this plot is on the next page.
+% 
+% <<label=baselineCR, echo=FALSE, eval=TRUE, results=tex>>=
+% NODE <- 5
+% cat("NOTE:",labels(PLOTBASECR)[NODE], "Baseline CR =",PLOTBASECR[NODE])
+% @
+% 
+% <<label=pintailcr_N5, fig=TRUE, include=FALSE, echo=FALSE, eps=FALSE, pdf=TRUE>>=
+% NODE <- 5
+% 
+% # Start Plot frame
+% plot(0, 0, 
+%      type="l", 
+%      lwd=0, 
+%      xlim = c(0,max(PLOTCR)), 
+%      ylim = c(min(DELTA_K),max(DELTA_K)), 
+%      main="Change in Carying Capacity vs. CR \n (Perturbations to only NODE 5)",  
+%      xlab="CR", 
+%      ylab="Change in K")
+% symb <- 0
+% 
+% for(j in 1:num_nodes){
+%   par(new = TRUE)
+%   # Plot the Baseline Values
+%   plot(PLOTBASECR[j], 0, 
+%        type="o", 
+%        lwd=1, 
+%        pch=symb, 
+%        xlim = c(0, max(PLOTCR)), 
+%        ylim = c(min(DELTA_K),max(DELTA_K)), 
+%        axes = FALSE,  
+%        xlab="", 
+%        ylab="")
+%  
+%    par(new = TRUE)
+%   # Plot the values for each perturbation to NODE
+%   plot(PLOTCR[seq(NODE,num_nodes*length(PERT),by=num_nodes),j], DELTA_K[seq(NODE,num_nodes*length(PERT),by=num_nodes)], 
+%        type="o", 
+%        lwd=1, 
+%        pch=symb, 
+%        xlim = c(0,max(PLOTCR)), 
+%        ylim = c(min(DELTA_K),max(DELTA_K)), 
+%        axes = FALSE,  
+%        xlab="", 
+%        ylab="")
+%   symb <- symb +1
+% }
+% rm(j)
+% @
+% 
+% \begin{figure}[H]
+% \begin{center}
+% \includegraphics[width=.9\textwidth, height=\textwidth]{RGraphics-pintailcr_N5}
+% \caption{Perturbation results: Change in baseline carrying capacity vs. $C^r$ values for reductions in the survival rates at Node 5, GC}\label{fig:pintailcr_N5}
+% \end{center}
+% \end{figure}
+% 
+% \vspace{-1cm}
+% \begin{tabular}{|c|c|}
+% \hline
+% AK & $\Box$ \\
+% \hline
+% PR & $\bigcirc$ \\
+% \hline
+% NU & $\triangle$ \\
+% \hline
+% CA & $+$ \\
+% \hline
+% GC & $\times$ \\
+% \hline
+% \end{tabular}
+% 
+% %DATA
+% \begin{landscape}
+% <<label=DATA, echo=FALSE, eval=TRUE, results=tex>>=
+% rm(TABLEDATA)
+% for(j in 1:num_nodes){
+%   TABLECR <- PLOTCR[seq(NODE,num_nodes*length(PERT),by=num_nodes),j]
+%   TABLEDELTAK <- DELTA_K[seq(NODE,num_nodes*length(PERT),by=num_nodes)]
+%   if(j==1){
+%     TABLEDATA <- cbind(TABLECR,TABLEDELTAK)
+%   } else {
+%     TABLEDATA <- cbind(TABLEDATA,TABLECR,TABLEDELTAK)
+%   }
+% }
+% TABLEBASE <- matrix(0, 1, 2*num_nodes)
+% for(i in 1:num_nodes){
+%   TABLEBASE[2*i-1] <- PLOTBASECR[i]
+% }
+% TABLEDATA <- rbind(TABLEBASE, TABLEDATA)
+% RNames <- c('BASELINE',as.character(PERT))
+% rownames(TABLEDATA)<-RNames
+% colnames(TABLEDATA)<- c('AK - CR','AK - K','PR - CR','PR - K','NU - CR','NU - K','CA - CR','CA - K','GC - CR','GC - K')
+% print(xtable(TABLEDATA,digits=3, table.placement="H", caption=c("Data for Change in Carying Capacity vs CR")))
+% @
+% \end{landscape}
+% 
+% \clearpage
+% 
+% 
+% 
+% 
+% \section{CR Full Data - Perturbations}
+% 
+% <<label=printPERT, echo=FALSE, eval=TRUE, results=tex>>=
+% for(i in 1:count){
+%   rm(printPERT)
+%   printPERT <- data.frame(PERT_CR[[i]])
+%   printK <- colSums(PERT_Pop_TOTAL[[i]])
+%   my_table_long <- xtable(printPERT,digits=3, caption=cat(PERT_storerun[[i]], "\n-- Equilibrium K =", round(printK[1],1)),tabular.environment='longtable', floating=FALSE, table.placement="H")
+%   print(my_table_long, tabular.environment='longtable',floating=FALSE)
+% }
+% @
+% 
+% \clearpage
+
+
+\end{document}
+
+
+
+
