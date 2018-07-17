@@ -56,7 +56,7 @@ if(SAVE_VAR==TRUE){
   save_variables <- c(save_variables, "BASE_save_f_update", "BASE_save_p_update", "BASE_save_s_update", "BASE_save_CR", "PERT_save_f_update", "PERT_save_p_update", "PERT_save_s_update", "PERT_save_CR")
 }
 
-pert_variables <- c(pert_variables,ls())
+pert_variables <- c(pert_variables, ls(),"count", "p")
 count <- 0
 
 for (p in 1:length(PERT)){
